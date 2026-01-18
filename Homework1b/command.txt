@@ -1,0 +1,1 @@
+sudo scp -i ~/sshkey.pem /mnt/c/Users/98999/Desktop/CS6650-Distributed-Systems/Homework1b/mainbinary ec2-user@34.219.21.28:app
