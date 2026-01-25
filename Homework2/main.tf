@@ -10,6 +10,12 @@ variable "ssh_key_name" {
   description = "Name of your existing AWS key pair"
 }
 
+variable "instance_count" {
+  type        = number
+  description = "Number of EC2 instances to create"
+  default     = 2
+}
+
 # The provider of your cloud service, in this case it is AWS. 
 provider "aws" {
   region     = "us-west-2" # Which region you are working on
@@ -17,6 +23,7 @@ provider "aws" {
 
 # Your ec2 instance
 resource "aws_instance" "demo-instance" {
+  count                  = var.instance_count
   ami                    = data.aws_ami.al2023.id
   instance_type          = "t2.micro"
   iam_instance_profile   = "LabInstanceProfile"
@@ -40,6 +47,15 @@ resource "aws_security_group" "ssh" {
     protocol    = "tcp"
     cidr_blocks = [var.ssh_cidr]
   }
+
+  ingress {
+    description = "HTTP 8080"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.ssh_cidr]  # 8080 
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -58,6 +74,17 @@ data "aws_ami" "al2023" {
   }
 }
 
-output "ec2_public_dns" {
-  value = aws_instance.demo-instance.public_dns
+output "instance_1_public_dns" {
+  value = aws_instance.demo-instance[0].public_dns
+}
+
+output "instance_2_public_dns" {
+  value = aws_instance.demo-instance[1].public_dns
+}
+
+output "instance_urls" {
+  value = [
+    "http://${aws_instance.demo-instance[0].public_dns}:8080/albums",
+    "http://${aws_instance.demo-instance[1].public_dns}:8080/albums"
+  ]
 }
