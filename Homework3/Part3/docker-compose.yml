@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  # HttpUser version
+  master-http:
+    image: locustio/locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile.py --master
+  
+  worker-http:
+    image: locustio/locust
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile.py --worker --master-host master-http
+
+  # FastHttpUser version
+  master-fast:
+    image: locustio/locust
+    ports:
+      - "8090:8089"  # differnet port
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile_fast.py --master
+  
+  worker-fast:
+    image: locustio/locust
+    volumes:
+      - ./:/mnt/locust
+    command: -f /mnt/locust/locustfile_fast.py --worker --master-host master-fast
