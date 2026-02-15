@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product API Tester</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --ink: #1f1f1f;
+      --muted: #666666;
+      --accent: #1f6feb;
+      --panel: #ffffff;
+      --border: #e2ded7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 600px at 20% -10%, #fff7df 0%, rgba(255,247,223,0.0) 60%),
+                  radial-gradient(1000px 600px at 100% 10%, #e7f0ff 0%, rgba(231,240,255,0.0) 55%),
+                  var(--bg);
+    }
+
+    header {
+      padding: 24px 18px 8px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      letter-spacing: 0.2px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    main {
+      max-width: 900px;
+      margin: 18px auto 48px;
+      padding: 0 18px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 120px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .primary { background: var(--accent); color: #fff; }
+    .ghost { background: #f1f1f1; color: #1f1f1f; }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+      min-height: 120px;
+      margin: 0;
+    }
+
+    @media (min-width: 760px) {
+      main { grid-template-columns: 1.1fr 0.9fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Product API Tester</h1>
+    <p>Test GET /products/{id} and POST /products/{id}/details</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row">
+        <label for="baseUrl">Base URL</label>
+        <input id="baseUrl" value="http://localhost:5173" />
+      </div>
+
+      <div class="row">
+        <label for="productId">Product ID</label>
+        <input id="productId" type="number" min="1" value="1" />
+      </div>
+
+      <div class="row">
+        <label for="payload">POST body (JSON)</label>
+        <textarea id="payload"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="getBtn">GET Product</button>
+        <button class="primary" id="postBtn">POST Details</button>
+        <button class="ghost" id="test204Btn">Test 204</button>
+        <button class="ghost" id="test200Btn">Test 200</button>
+        <button class="ghost" id="test400Btn">Test 400</button>
+        <button class="ghost" id="test404Btn">Test 404</button>
+        <button class="ghost" id="test500Btn">Test 500</button>
+        <button class="ghost" id="fillBtn">Fill Sample JSON</button>
+        <button class="ghost" id="clearBtn">Clear Output</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <label>Response</label>
+        <pre id="output">Ready.</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const baseUrl = document.getElementById("baseUrl");
+    const productId = document.getElementById("productId");
+    const payload = document.getElementById("payload");
+    const output = document.getElementById("output");
+
+    function setOutput(text) {
+      output.textContent = text;
+    }
+
+    function buildSample() {
+      const id = parseInt(productId.value || "1", 10);
+      return {
+        product_id: id,
+        sku: "SKU-001",
+        manufacturer: "Acme",
+        category_id: 10,
+        weight: 5,
+        some_other_id: 99
+      };
+    }
+
+    function buildUrl(path) {
+      return `${baseUrl.value.replace(/\/$/, "")}${path}`;
+    }
+
+    async function request(method, url, body, extraHeaders) {
+      const headers = { "Content-Type": "application/json", ...(extraHeaders || {}) };
+      const options = { method, headers };
+      if (body !== undefined) {
+        options.body = JSON.stringify(body);
+      }
+
+      const res = await fetch(url, options);
+      const text = await res.text();
+      setOutput(`Status: ${res.status}\n\n${text || "(empty)"}`);
+      return res.status;
+    }
+
+    async function doGet() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      const url = buildUrl(`/products/${id}`);
+      setOutput(`GET ${url}\n...`);
+      try {
+        await request("GET", url);
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    async function doPost() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      let body;
+      try {
+        body = JSON.parse(payload.value || "{}");
+      } catch (err) {
+        setOutput(`Invalid JSON: ${err}`);
+        return;
+      }
+
+      const url = buildUrl(`/products/${id}/details`);
+      setOutput(`POST ${url}\n...`);
+      try {
+        await request("POST", url, body);
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    async function test204() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      const url = buildUrl(`/products/${id}/details`);
+      setOutput(`POST ${url}\n...`);
+      try {
+        await request("POST", url, buildSample());
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    async function test200() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      const postUrl = buildUrl(`/products/${id}/details`);
+      const getUrl = buildUrl(`/products/${id}`);
+      setOutput(`POST ${postUrl}\n...`);
+      try {
+        await request("POST", postUrl, buildSample());
+        setOutput(`GET ${getUrl}\n...`);
+        await request("GET", getUrl);
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    async function test400() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      const badBody = {
+        product_id: parseInt(id, 10),
+        sku: "",
+        manufacturer: "Acme",
+        category_id: 10,
+        weight: 5,
+        some_other_id: 99
+      };
+
+      const url = buildUrl(`/products/${id}/details`);
+      setOutput(`POST ${url}\n...`);
+      try {
+        await request("POST", url, badBody);
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    async function test404() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      const wrongId = parseInt(id, 10) + 1;
+      const body = {
+        product_id: wrongId,
+        sku: "SKU-001",
+        manufacturer: "Acme",
+        category_id: 10,
+        weight: 5,
+        some_other_id: 99
+      };
+
+      const url = buildUrl(`/products/${id}/details`);
+      setOutput(`POST ${url}\n...`);
+      try {
+        await request("POST", url, body);
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    async function test500() {
+      const id = productId.value.trim();
+      if (!id) {
+        setOutput("Please enter product ID.");
+        return;
+      }
+
+      const url = buildUrl(`/products/${id}`);
+      setOutput(`GET ${url}\n...`);
+      try {
+        await request("GET", url, undefined, { "X-Debug-Panic": "1" });
+      } catch (err) {
+        setOutput(`Request failed: ${err}`);
+      }
+    }
+
+    document.getElementById("getBtn").addEventListener("click", doGet);
+    document.getElementById("postBtn").addEventListener("click", doPost);
+    document.getElementById("test204Btn").addEventListener("click", test204);
+    document.getElementById("test200Btn").addEventListener("click", test200);
+    document.getElementById("test400Btn").addEventListener("click", test400);
+    document.getElementById("test404Btn").addEventListener("click", test404);
+    document.getElementById("test500Btn").addEventListener("click", test500);
+    document.getElementById("fillBtn").addEventListener("click", () => {
+      payload.value = JSON.stringify(buildSample(), null, 2);
+    });
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      setOutput("Ready.");
+    });
+
+    payload.value = JSON.stringify(buildSample(), null, 2);
+  </script>
+</body>
+</html>
