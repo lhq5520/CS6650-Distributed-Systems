@@ -20,6 +20,8 @@ locust_report/
 *.dylib
 *.test
 *.out
+coverage/
+vendor/
 
 # VS Code
 .vscode/
@@ -27,3 +29,11 @@ locust_report/
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+crash.log
+crash.*.log
