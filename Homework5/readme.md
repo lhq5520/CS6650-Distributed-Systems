@@ -1,4 +1,4 @@
-# CS6650 Assignment 2b — Product API with Terraform & Load Testing
+# CS6650 Assignment 5 (fork from 2b) — Product API with Terraform & Load Testing
 
 ## Project Structure
 
@@ -30,21 +30,21 @@
 
 ### API Endpoints (based on OpenAPI spec)
 
-| Method | Endpoint | Description | Status Codes |
-|--------|----------|-------------|-------------|
-| GET | `/products/{productId}` | Get product by ID | 200, 404, 500 |
-| POST | `/products/{productId}/details` | Add/update product details | 204, 400, 404, 500 |
+| Method | Endpoint                        | Description                | Status Codes       |
+| ------ | ------------------------------- | -------------------------- | ------------------ |
+| GET    | `/products/{productId}`         | Get product by ID          | 200, 404, 500      |
+| POST   | `/products/{productId}/details` | Add/update product details | 204, 400, 404, 500 |
 
 ### Product Schema (all fields required)
 
-| Field | Type | Constraints |
-|-------|------|-------------|
-| product_id | int32 | ≥ 1 |
-| sku | string | 1–100 chars |
-| manufacturer | string | 1–200 chars |
-| category_id | int32 | ≥ 1 |
-| weight | int32 | ≥ 0 |
-| some_other_id | int32 | ≥ 1 |
+| Field         | Type   | Constraints |
+| ------------- | ------ | ----------- |
+| product_id    | int32  | ≥ 1         |
+| sku           | string | 1–100 chars |
+| manufacturer  | string | 1–200 chars |
+| category_id   | int32  | ≥ 1         |
+| weight        | int32  | ≥ 0         |
+| some_other_id | int32  | ≥ 1         |
 
 ### How to Run Locally
 
@@ -136,23 +136,28 @@ Products are stored **in-memory** using a Go `map[int]*Product` protected by `sy
 ### How to Deploy
 
 1. **Configure AWS credentials:**
+
    ```bash
    aws configure
    ```
 
 2. **Initialize Terraform:**
+
    ```bash
    cd terraform
    terraform init -upgrade
    ```
+
    ![Terraform Init](screenshots/Terraform_init.png)
 
 3. **Deploy infrastructure:**
+
    ```bash
    terraform apply
    ```
 
 4. **Get the public IP:**
+
    ```bash
    # From ECS task network interface
    aws ec2 describe-network-interfaces \
@@ -160,9 +165,11 @@ Products are stored **in-memory** using a Go `map[int]*Product` protected by `sy
      --query "NetworkInterfaces[0].Association.PublicIp" \
      --output text
    ```
+
    ![Get IP](screenshots/Get_ip_from_terraform.png)
 
 5. **Test on AWS:**
+
    ```bash
    # POST
    curl -i -X POST http://<PUBLIC_IP>:5173/products/1/details \
@@ -209,14 +216,14 @@ Open `http://localhost:8089` to configure users and spawn rate.
 
 ### Test Results Summary
 
-| Environment | Users | Spawn Rate | Total Requests | Failures | Avg RT (ms) | RPS | Duration |
-|-------------|-------|-----------|----------------|----------|-------------|-----|----------|
-| **Local** | 10 | 2 | 1,337 | 0 (0%) | 1.1 | 8.0 | 2m 47s |
-| **Local** | 100 | 10 | 24,468 | 0 (0%) | 2.1 | 62.0 | 6m 35s |
-| **Local** | 500 | 50 | 142,191 | 0 (0%) | 25.8 | 295.3 | 8m 1s |
-| **AWS** | 10 | 2 | 1,592 | 0 (0%) | 13.4 | 7.1 | 3m 43s |
-| **AWS** | 100 | 10 | 18,248 | 0 (0%) | 12.9 | 67.1 | 4m 33s |
-| **AWS** | 500 | 50 | 89,546 | 0 (0%) | 38.7 | 332.0 | 4m 30s |
+| Environment | Users | Spawn Rate | Total Requests | Failures | Avg RT (ms) | RPS   | Duration |
+| ----------- | ----- | ---------- | -------------- | -------- | ----------- | ----- | -------- |
+| **Local**   | 10    | 2          | 1,337          | 0 (0%)   | 1.1         | 8.0   | 2m 47s   |
+| **Local**   | 100   | 10         | 24,468         | 0 (0%)   | 2.1         | 62.0  | 6m 35s   |
+| **Local**   | 500   | 50         | 142,191        | 0 (0%)   | 25.8        | 295.3 | 8m 1s    |
+| **AWS**     | 10    | 2          | 1,592          | 0 (0%)   | 13.4        | 7.1   | 3m 43s   |
+| **AWS**     | 100   | 10         | 18,248         | 0 (0%)   | 12.9        | 67.1  | 4m 33s   |
+| **AWS**     | 500   | 50         | 89,546         | 0 (0%)   | 38.7        | 332.0 | 4m 30s   |
 
 > Detailed Locust HTML reports are available in the `locust_reports/` directory.
 
@@ -266,7 +273,7 @@ The complete `api.yaml` defines four services: Products, Shopping Cart, Warehous
 
 ### What does "Terraform is a declarative language" mean?
 
-**Declarative** means you describe *what* the desired end state should be, not *how* to get there. You write "I want an ECS cluster with this task definition" — Terraform figures out the steps.
+**Declarative** means you describe _what_ the desired end state should be, not _how_ to get there. You write "I want an ECS cluster with this task definition" — Terraform figures out the steps.
 
 **Imperative** languages (like shell scripts) require you to specify every step: "first create the VPC, then the subnet, then the security group..." — and you must handle ordering and error recovery yourself.
 
