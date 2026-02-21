@@ -1,0 +1,77 @@
+# ------------------------------
+# OS / Editor
+# ------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ------------------------------
+# Go
+# ------------------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+
+# Common local build binaries
+server
+product
+
+# ------------------------------
+# Terraform
+# ------------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform plan / variable files (local)
+*.tfplan
+*.tfvars
+*.tfvars.json
+
+# Keep lock file for reproducible provider versions
+# !.terraform.lock.hcl
+
+# ------------------------------
+# Env / secrets
+# ------------------------------
+.env
+.env.*
+*.pem
+*.key
+
+# ------------------------------
+# Docker
+# ------------------------------
+*.tar
+
+# ------------------------------
+# Python / Locust
+# ------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Locust generated outputs (headless --csv)
+*.stats.csv
+*.stats_history.csv
+*.failures.csv
+*.exceptions.csv
