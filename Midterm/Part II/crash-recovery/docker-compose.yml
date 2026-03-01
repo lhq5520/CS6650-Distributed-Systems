@@ -1,0 +1,49 @@
+# Docker Compose for Crash & Recovery Demo
+# 
+# Usage:
+#   Phase 1 (BROKEN - no resilience):
+#     docker compose --profile broken up --build
+#
+#   Phase 2 (FIXED - with resilience):
+#     docker compose --profile resilient up --build
+#
+#   To trigger failure mode on recommendation service:
+#     curl "http://localhost:8081/mode?mode=slow"    # slow responses (3-8s)
+#     curl "http://localhost:8081/mode?mode=error"    # 80% error rate
+#     curl "http://localhost:8081/mode?mode=crash"    # progressive degradation then crash
+#     curl "http://localhost:8081/mode?mode=none"     # back to healthy
+
+services:
+  # ===== Recommendation Service (downstream - shared by both profiles) =====
+  recommendation:
+    build: ./recommendation-service
+    ports:
+      - "8081:8081"
+    environment:
+      - FAILURE_MODE=none
+    profiles: ["broken", "resilient"]
+    restart: unless-stopped
+
+  # ===== Search Service WITHOUT resilience =====
+  search-broken:
+    build: ./search-service
+    ports:
+      - "8080:8080"
+    environment:
+      - RESILIENCE=false
+      - REC_SERVICE_URL=http://recommendation:8081
+    depends_on:
+      - recommendation
+    profiles: ["broken"]
+
+  # ===== Search Service WITH resilience =====
+  search-resilient:
+    build: ./search-service
+    ports:
+      - "8080:8080"
+    environment:
+      - RESILIENCE=true
+      - REC_SERVICE_URL=http://recommendation:8081
+    depends_on:
+      - recommendation
+    profiles: ["resilient"]

@@ -1,0 +1,10 @@
+# Copy this to terraform.tfvars and fill in your values
+
+region = "us-west-2"
+
+# After pushing images to ECR, paste the URIs here:
+search_image_uri = "YOUR_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/search-service:latest"
+rec_image_uri    = "YOUR_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/rec-service:latest"
+
+# Phase 1: false (broken), Phase 2: true (fixed)
+resilience_enabled = false
