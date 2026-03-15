@@ -1,0 +1,78 @@
+# ------------------------------
+# OS / Editor
+# ------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ------------------------------
+# Go
+# ------------------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.so.*
+*.dylib
+*.test
+*.out
+coverage.out
+bin/
+dist/
+vendor/
+
+# Common local binaries
+server
+product
+bootstrap
+
+# ------------------------------
+# Python / Locust
+# ------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Locust headless CSV outputs
+*.stats.csv
+*.stats_history.csv
+*.failures.csv
+*.exceptions.csv
+
+# ------------------------------
+# Terraform
+# ------------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.tfplan
+*.tfvars
+*.tfvars.json
+
+# ------------------------------
+# Env / secrets
+# ------------------------------
+.env
+.env.*
+*.pem
+*.key
+
+# ------------------------------
+# Logs / archives
+# ------------------------------
+*.log
+*.tar
