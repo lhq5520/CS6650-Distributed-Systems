@@ -1,0 +1,59 @@
+services:
+  node1:
+    build: ./src
+    ports:
+      - "8090:8080"
+    environment:
+      - MODE=leaderless
+      - PORT=8080
+      - PEERS=http://node2:8080,http://node3:8080,http://node4:8080,http://node5:8080
+    networks:
+      - kvnet
+
+  node2:
+    build: ./src
+    ports:
+      - "8091:8080"
+    environment:
+      - MODE=leaderless
+      - PORT=8080
+      - PEERS=http://node1:8080,http://node3:8080,http://node4:8080,http://node5:8080
+    networks:
+      - kvnet
+
+  node3:
+    build: ./src
+    ports:
+      - "8092:8080"
+    environment:
+      - MODE=leaderless
+      - PORT=8080
+      - PEERS=http://node1:8080,http://node2:8080,http://node4:8080,http://node5:8080
+    networks:
+      - kvnet
+
+  node4:
+    build: ./src
+    ports:
+      - "8093:8080"
+    environment:
+      - MODE=leaderless
+      - PORT=8080
+      - PEERS=http://node1:8080,http://node2:8080,http://node3:8080,http://node5:8080
+    networks:
+      - kvnet
+
+  node5:
+    build: ./src
+    ports:
+      - "8094:8080"
+    environment:
+      - MODE=leaderless
+      - PORT=8080
+      - PEERS=http://node1:8080,http://node2:8080,http://node3:8080,http://node4:8080
+    networks:
+      - kvnet
+
+networks:
+  kvnet:
+    driver: bridge

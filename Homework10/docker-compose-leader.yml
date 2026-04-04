@@ -1,0 +1,69 @@
+services:
+  leader:
+    build: ./src
+    ports:
+      - "8080:8080"
+    environment:
+      - MODE=leader
+      - PORT=8080
+      - W=${W:-5}
+      - R=${R:-1}
+      - FOLLOWERS=http://follower1:8080,http://follower2:8080,http://follower3:8080,http://follower4:8080
+    networks:
+      - kvnet
+
+  follower1:
+    build: ./src
+    ports:
+      - "8081:8080"
+    environment:
+      - MODE=follower
+      - PORT=8080
+      - W=${W:-5}
+      - R=${R:-1}
+      - LEADER_URL=http://leader:8080
+    networks:
+      - kvnet
+
+  follower2:
+    build: ./src
+    ports:
+      - "8082:8080"
+    environment:
+      - MODE=follower
+      - PORT=8080
+      - W=${W:-5}
+      - R=${R:-1}
+      - LEADER_URL=http://leader:8080
+    networks:
+      - kvnet
+
+  follower3:
+    build: ./src
+    ports:
+      - "8083:8080"
+    environment:
+      - MODE=follower
+      - PORT=8080
+      - W=${W:-5}
+      - R=${R:-1}
+      - LEADER_URL=http://leader:8080
+    networks:
+      - kvnet
+
+  follower4:
+    build: ./src
+    ports:
+      - "8084:8080"
+    environment:
+      - MODE=follower
+      - PORT=8080
+      - W=${W:-5}
+      - R=${R:-1}
+      - LEADER_URL=http://leader:8080
+    networks:
+      - kvnet
+
+networks:
+  kvnet:
+    driver: bridge
