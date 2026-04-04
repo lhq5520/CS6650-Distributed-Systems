@@ -99,28 +99,79 @@ def main():
     )
 
     # =========================================================
-    # 2. System Architecture
+    # 2. Code Explanation
     # =========================================================
-    add_heading(doc, "2. System Architecture")
+    add_heading(doc, "2. Code Explanation")
 
-    add_heading(doc, "2.1 Leader-Follower Replication", level=2)
+    # --- 2.1 KV Store Core ---
+    add_heading(doc, "2.1 KV Store Core (kvstore.go)", level=2)
     doc.add_paragraph(
-        "In this architecture, one designated Leader node handles all writes. "
-        "When a client writes to the Leader, it replicates the data to Followers based on the write quorum W. "
-        "Followers forward any write requests they receive to the Leader. "
-        "Reads can be served by the Leader alone (R=1) or by querying multiple nodes and picking the highest version (R>1)."
+        "Thread-safe in-memory hash map. Each entry has a Value and a logical Version number. "
+        "Uses sync.RWMutex so reads can happen concurrently, but writes get exclusive access."
     )
-    doc.add_paragraph("We tested three Leader-Follower configurations:")
+    doc.add_paragraph("Three key methods:")
+    methods = [
+        ("SetAndIncrement(key, value)",
+         "Leader/Coordinator uses this for client writes. Atomically increments version and stores. "
+         "Only place new versions are created."),
+        ("Set(key, value, version)",
+         "Followers use this for replicated data. Version guard: only updates if incoming version > existing. "
+         "Prevents out-of-order replications from overwriting newer data."),
+        ("Get(key)",
+         "Read with RLock. Returns entry + exists boolean."),
+    ]
+    for name, desc in methods:
+        p = doc.add_paragraph()
+        run = p.add_run(f"{name}: ")
+        run.bold = True
+        p.add_run(desc)
+
+    # --- 2.2 Leader-Follower ---
+    add_heading(doc, "2.2 Leader-Follower (leader.go)", level=2)
+
+    add_heading(doc, "Write Flow (HandleSet)", level=3)
+    write_steps = [
+        "Follower receives write -> forwards to Leader via forwardToLeader() (transparent proxy).",
+        "Leader receives write -> SetAndIncrement() assigns version, stores locally.",
+        "W=1: respond immediately, replicate to Followers in background goroutine.",
+        "W>1: call replicateToFollowers() synchronously, wait for (W-1) acks. "
+        "W includes Leader itself, so W=3 means Leader + 2 Followers.",
+        "W<N: after getting required acks, replicate to remaining Followers in background.",
+    ]
+    for step in write_steps:
+        doc.add_paragraph(step, style="List Bullet")
+
+    add_heading(doc, "Replication (replicateToFollowers)", level=3)
+    doc.add_paragraph(
+        "Sends POST to each Follower's /internal/set in parallel goroutines. "
+        "Follower sleeps 100ms (storage delay), Leader sleeps 200ms per Follower (network delay). "
+        "Total ~300ms per Follower, but parallel so write latency = slowest Follower, not the sum."
+    )
+
+    add_heading(doc, "Read Flow (HandleGet)", level=3)
+    read_steps = [
+        "R=1: local store.Get() only. Fast (~5ms), but may return stale data.",
+        "R>1: readFromMultipleNodes() reads local + (R-1) remote Followers in parallel "
+        "(each Follower sleeps 50ms). Returns highest version among all responses.",
+    ]
+    for step in read_steps:
+        doc.add_paragraph(step, style="List Bullet")
+
+    add_heading(doc, "local_read Endpoint", level=3)
+    doc.add_paragraph(
+        "A 'sneaky' test endpoint that always reads local store, bypassing quorum logic. "
+        "Used in unit tests to observe stale data on individual Followers during replication."
+    )
+
+    add_heading(doc, "N/R/W Configuration", level=3)
+    doc.add_paragraph(
+        "W and R are set via environment variables in Docker Compose. "
+        "Change .env and restart — no code changes needed."
+    )
     configs_lf = [
-        ("W=5, R=1", "Leader waits for ALL 5 nodes (including itself) before confirming the write. "
-         "Reads only need 1 node. W+R=6 > N=5, so consistency is guaranteed. "
-         "Writes are slow but reads are fast."),
-        ("W=1, R=5", "Leader confirms the write after storing locally (W=1), without waiting for Followers. "
-         "Reads query ALL 5 nodes and pick the highest version. W+R=6 > N=5, "
-         "but during the replication window, stale reads are likely if R does not overlap with all pending replications."),
-        ("W=3, R=3", "Balanced quorum. Leader waits for 3 nodes to confirm writes, reads query 3 nodes. "
-         "W+R=6 > N=5, so consistency is theoretically guaranteed. "
-         "Both writes and reads have moderate latency."),
+        ("W=5, R=1", "All nodes confirm writes. Local reads. ~320ms write, ~5ms read. 0 stale reads."),
+        ("W=1, R=5", "Leader-only write. Read all 5 nodes. ~5ms write, ~35ms read. Stale reads possible."),
+        ("W=3, R=3", "Quorum. ~320ms write, ~35ms read. Near-zero stale reads (W+R=6 > N=5)."),
     ]
     for title_text, desc in configs_lf:
         p = doc.add_paragraph()
@@ -128,14 +179,55 @@ def main():
         run.bold = True
         p.add_run(desc)
 
-    add_heading(doc, "2.2 Leaderless Replication", level=2)
+    # --- 2.3 Leaderless ---
+    add_heading(doc, "2.3 Leaderless (leaderless.go)", level=2)
+
+    add_heading(doc, "Write Flow", level=3)
+    doc.add_paragraph("Any node that receives a write becomes the Write Coordinator:")
+    ll_write_steps = [
+        "SetAndIncrement() assigns version, stores locally.",
+        "replicateToPeers() sends to ALL peers in parallel (W=N). Same delays: 100ms + 200ms.",
+        "Only returns 201 after ALL peers confirm. If any fails, returns 500.",
+    ]
+    for step in ll_write_steps:
+        doc.add_paragraph(step, style="List Bullet")
+
+    add_heading(doc, "Read Flow", level=3)
     doc.add_paragraph(
-        "In the Leaderless architecture, any node can act as the Write Coordinator. "
-        "When a node receives a write, it stores locally and replicates to ALL other peers (W=N). "
-        "Reads are served locally (R=1). Since W=N ensures all nodes eventually have the data, "
-        "and the Coordinator waits for all confirmations before responding, "
-        "reads after a completed write are always consistent."
+        "R=1: local read only. Consistent after write completes (W=N), "
+        "but stale reads possible during the replication window."
     )
+
+    add_heading(doc, "vs. Leader-Follower", level=3)
+    doc.add_paragraph(
+        "No single point of failure — any node can coordinate writes. "
+        "Tradeoff: concurrent writes to the same key from different Coordinators "
+        "could create version conflicts. The version guard in Set() resolves this "
+        "by always keeping the highest version."
+    )
+
+    # --- 2.4 Tricky Parts ---
+    add_heading(doc, "2.4 Tricky Parts", level=2)
+    tricky = [
+        ("sync.RWMutex",
+         "Go maps are not concurrent-safe. Without the mutex, parallel HTTP handlers would panic."),
+        ("Version guard",
+         "Set() only updates if version > existing. Prevents out-of-order replications from "
+         "overwriting newer data."),
+        ("W=1 background replication",
+         "Leader responds immediately, replicates via goroutine. Fast but if Leader crashes, "
+         "Followers lose that write."),
+        ("Quorum off-by-one",
+         "W includes the Leader. W=3 needs (W-1)=2 Follower acks. Getting this wrong breaks consistency."),
+        ("Simulated delays",
+         "200ms/100ms/50ms delays widen the inconsistency window so unit tests can reliably "
+         "catch stale reads."),
+    ]
+    for title_text, desc in tricky:
+        p = doc.add_paragraph()
+        run = p.add_run(f"{title_text}: ")
+        run.bold = True
+        p.add_run(desc)
 
     # =========================================================
     # 3. Docker Deployment
