@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in your values
+# cp terraform.tfvars.example terraform.tfvars
+
+db_password   = "YourStrongPassword123!"
+key_name      = "your-ec2-keypair-name"
+
+# Optional: override defaults
+# instance_type    = "c6i.xlarge"
+# db_instance_class = "db.t4g.micro"

@@ -1,0 +1,11 @@
+# Binary
+server
+
+# Terraform sensitive/generated files
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+
+# SSH keys
+*.pem
