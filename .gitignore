@@ -36,3 +36,12 @@ dist/
 
 # Logs
 *.log
+
+# SSH keys
+*.pem
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
